@@ -4,11 +4,13 @@ from __future__ import division
 from __future__ import print_function
 
 import time
-import pynput # We need pynput.keyboard
+import pynput  # We need pynput.keyboard
 import multiprocessing
 import subprocess
 import librosa
 import os
+import warnings
+import threading
 
 if 1:  # for AudioRecorder
     import sounddevice as sd
@@ -31,23 +33,31 @@ def reset_audio_sample_rate(filename, dst_sample_rate):
 
 
 class TimerPrinter(object):
-    # Print a message with a time gap of "T_gap"
-    def __init__(self):
-        self.prev_time = -999
+    ''' A class for printing message with time control:
+        If previous `print` is within T_gap seconds, 
+        then the currrent `print` prints nothing. 
+    '''
+    def __init__(self, print_period):
+        self._prev_time = -999
+        self._t_print_gap = print_period
 
-    def print(self, s, T_gap):
+    def print(self, s):
         curr_time = time.time()
-        if curr_time - self.prev_time < T_gap:
+        if curr_time - self._prev_time < self._t_print_gap:
             return
         else:
-            self.prev_time = curr_time
+            self._prev_time = curr_time
             print(s)
 
     def reset(self):
-        self.prev_time = -999
+        self._prev_time = -999.0
 
 
 class AudioRecorder(object):
+    '''
+    A class I copied from somewhere for recording audio.
+    For the unit test, please see: test_KeyboardMonitor_and_AudioRecorder()
+    '''
     def __init__(self):
         self.init_settings()
 
@@ -196,33 +206,71 @@ class AudioRecorder(object):
 
 
 class KeyboardMonitor(object):
-    # https://pypi.org/project/pynput/1.0.4/
-    def __init__(self, default_key='R', is_print=False):
+    '''
+    Detect keyboard press/release events.
+    For more details, please see: https://pypi.org/project/pynput/1.0.4/
+    For the unit test, please see: test_KeyboardMonitor_and_AudioRecorder()
+    '''
+    def __init__(self, hotkey='R', run_in_new_thread=True, is_print=False):
         self._recording_state = multiprocessing.Value('i', 0)
         self._is_print = is_print
-        self._default_key = default_key.upper()
+        self._default_key = hotkey.upper()
         self._thread = None
         self._prev_state, self._curr_state = False, False
-        
-    def _thread_keyboard_monitor(self):
-        with pynput.keyboard.Listener(
-                on_press=self._callback_on_press,
-                on_release=self._callback_on_release) as listener:
-            listener.join()
-    
+        self._run_in_new_thread = run_in_new_thread
+
+        # When the class instance is destroyed, this flag will be set to False.
+        self._is_alive = True
+
+        # Keypress state
+        self._prev_state, self._curr_state == False, False
+        self._t_last_pressing = -999.0  # Last time when key is released to press
+        self._t_last_releasing = -999.0  # Last time when key is pressed to released
+
+        # Start listening
+        self._start_listen(run_in_new_thread)
+
+    def is_pressed(self):
+        ''' Check if key is pressed '''
+        return self._curr_state
+
+    def is_released(self):
+        ''' Check if key is released '''
+        return not self._curr_state
+
+    def is_kept_pressed(self):
+        ''' Check if key is kept pressed '''
+        return (self._prev_state, self._curr_state) == (True, True)
+
+    def has_just_pressed(self, t_tolerance=0.1):
+        ''' Check if key has just been pressed. '''
+        return (time.time() - self._t_last_pressing) <= t_tolerance
+
+    def has_just_released(self, t_tolerance=0.1):
+        ''' Check if key has just been released '''
+        return (time.time() - self._t_last_releasing) <= t_tolerance
+
     def get_key_state(self):
         ss = (self._prev_state, self._curr_state)
         return ss
 
-    def update_key_state(self):
-        self._prev_state = self._curr_state
-        self._curr_state = self._recording_state.value
+    def __del__(self):
+        self._is_alive = False
 
-    def start_listen(self, run_in_new_thread=False):
+    def _thread_keyboard_monitor(self):
+        with pynput.keyboard.Listener(
+                on_press=self._callback_on_press,
+                on_release=self._callback_on_release) as listener:
+            while self._is_alive:
+                time.sleep(0.1)
+            listener.join()
+
+    def _start_listen(self, run_in_new_thread):
         ''' Start the keyboard listener '''
         if run_in_new_thread:
-            self._thread = multiprocessing.Process(target=self._thread_keyboard_monitor,
-                                                   args=())
+            self._thread = threading.Thread(
+                target=self._thread_keyboard_monitor, args=())
+            self._thread.daemon = True  # enable ctrl+c to stop program
             self._thread.start()
         else:
             self._thread_keyboard_monitor()
@@ -232,72 +280,68 @@ class KeyboardMonitor(object):
         if self._thread:
             self._thread.terminate()
 
-    def is_kept_pressed(self):
-        ''' Check if key is kept pressed '''
-        return (self._prev_state, self._curr_state) == (True, True)
-
-    def is_released(self):
-        ''' Check if key is released '''
-        return not self._curr_state
-
-    def has_just_pressed(self):
-        ''' Check if key has just been pressed '''
-        return (self._prev_state, self._curr_state) == (False, True)
-
-    def has_just_released(self):
-        ''' Check if key has just been released '''
-        return (self._prev_state, self._curr_state) == (True, False)
-
     def _key2char(self, key):
         try:
-            return key.char
+            key = key.char
         except:
-            return str(key)
+            key = str(key)
+        key = key.upper()
+        return key
 
     def _callback_on_press(self, key):
+        ''' Callback function when any key is pressed down. '''
         key = self._key2char(key)
         if self._is_print:
             print("\nKey {} is pressed".format(key))
-        if key.upper() == self._default_key:
+        if key == self._default_key:
             self._recording_state.value = 1
+            self._update_key_state()
 
     def _callback_on_release(self, key):
+        ''' Callback function when any key is released. '''
         key = self._key2char(key)
         if self._is_print:
             print("\nKey {} is released".format(key))
-        if key.upper() == self._default_key:
+        if key == self._default_key:
             self._recording_state.value = 0
+            self._update_key_state()
+
+    def _update_key_state(self):
+        self._prev_state = self._curr_state
+        self._curr_state = self._recording_state.value == 1
+        if (self._prev_state, self._curr_state) == (False, True):
+            self._t_last_pressing = time.time()
+        if (self._prev_state, self._curr_state) == (True, False):
+            self._t_last_releasing = time.time()
 
 
-if __name__ == "__main__":
+def test_KeyboardMonitor_and_AudioRecorder():
+    ''' Use keypress to start/stop recording audio.
+    The audio will be saved to `dst_folder`.
+    '''
+    dst_folder = "./data/data_tmp/"
 
     # Start keyboard listener
-    keyboard = KeyboardMonitor(is_print=False)
-    keyboard.start_listen(run_in_new_thread=True)
+    keyboard = KeyboardMonitor(hotkey="R",
+                               is_print=False,
+                               run_in_new_thread=True)
 
     # Set up audio recorder
     recorder = AudioRecorder()
 
     # Others
-    tprinter = TimerPrinter()  # for print
+    timer_printer = TimerPrinter(print_period=2.0)  # for print
 
     # Start loop
     while True:
-        tprinter.print("Usage: keep pressing down 'R' to record audio",
-                       T_gap=2)
-
-        keyboard.update_key_state()
+        timer_printer.print("Usage: keep pressing down 'R' to record audio")
         if keyboard.has_just_pressed():
-
-            # start recording
-            recorder.start_record(folder="./data/data_tmp/")
-
-            # wait until key release
-            while not keyboard.has_just_released():
-                keyboard.update_key_state()
+            recorder.start_record(folder=dst_folder)  # Start record
+            while not keyboard.has_just_released():  # Wait for key released
                 time.sleep(0.001)
+            recorder.stop_record()  # Stop record
+        time.sleep(0.01)
 
-            # stop recording
-            recorder.stop_record()
 
-        time.sleep(0.05)
+if __name__ == "__main__":
+    test_KeyboardMonitor_and_AudioRecorder()
