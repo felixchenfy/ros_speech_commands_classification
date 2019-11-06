@@ -2,12 +2,11 @@
 #!/usr/bin/env python2
 from __future__ import division
 from __future__ import print_function
-
 '''
 This script is deprecated.
 I abandoned the machine learning method.
 '''
-import numpy as np 
+import numpy as np
 import time
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
@@ -30,7 +29,7 @@ class ClassifierOfflineTrain(object):
         self.init_all_models()
         # self.clf = self.choose_model("Nearest Neighbors")
         # self.clf = self.choose_model("Linear SVM")
-        self.clf = self.choose_model("RBF SVM") # 0.65
+        self.clf = self.choose_model("RBF SVM")  # 0.65
         # self.clf = self.choose_model("Gaussian Process")
         # self.clf = self.choose_model("Decision Tree")
         # self.clf = self.choose_model("Random Forest")
@@ -40,11 +39,13 @@ class ClassifierOfflineTrain(object):
         self.model_name = name
         idx = self.names.index(name)
         return self.classifiers[idx]
-            
+
     def init_all_models(self):
-        self.names = ["Nearest Neighbors", "Linear SVM", "RBF SVM", "Gaussian Process",
-             "Decision Tree", "Random Forest", "Neural Net", "AdaBoost",
-             "Naive Bayes", "QDA"]
+        self.names = [
+            "Nearest Neighbors", "Linear SVM", "RBF SVM", "Gaussian Process",
+            "Decision Tree", "Random Forest", "Neural Net", "AdaBoost",
+            "Naive Bayes", "QDA"
+        ]
         self.model_name = None
         self.classifiers = [
             KNeighborsClassifier(5),
@@ -52,15 +53,18 @@ class ClassifierOfflineTrain(object):
             SVC(gamma=0.02, C=10.0, verbose=True),
             GaussianProcessClassifier(1.0 * RBF(1.0)),
             DecisionTreeClassifier(max_depth=5),
-            RandomForestClassifier(max_depth=30, n_estimators=100, max_features="auto"),
-            MLPClassifier((100, 100, 100, 100)), # Neural Net
+            RandomForestClassifier(max_depth=30,
+                                   n_estimators=100,
+                                   max_features="auto"),
+            MLPClassifier((100, 100, 100, 100)),  # Neural Net
             AdaBoostClassifier(),
             GaussianNB(),
-            QuadraticDiscriminantAnalysis()]
+            QuadraticDiscriminantAnalysis()
+        ]
         self._IS_USE_PCA = False
 
     def train(self, X, Y):
-        print("\n" + "-"*80 + "\nStart training:\n")
+        print("\n" + "-" * 80 + "\nStart training:\n")
 
         # Apply PCA
         if self._IS_USE_PCA:
@@ -79,20 +83,20 @@ class ClassifierOfflineTrain(object):
         timer.report("Time cost of training = ")
 
         # Return
-        print("\nTraining ends.\n" + "-"*80 + "\n")
+        print("\nTraining ends.\n" + "-" * 80 + "\n")
         return None
 
     def predict(self, X):
-        
+
         # Check input
-        ONE_SAMPLE = len(X.shape)==1
+        ONE_SAMPLE = len(X.shape) == 1
         if ONE_SAMPLE:
             X = [X]
-        
+
         # PCA
         if self._IS_USE_PCA:
             X = self.pca.transform(X)
-        
+
         # Predict
         Y_predict = self.clf.predict(X)
 
@@ -102,7 +106,7 @@ class ClassifierOfflineTrain(object):
         else:
             return Y_predict
 
-    def predict_proba(self, X): # only works for neural network
+    def predict_proba(self, X):  # only works for neural network
         if self._IS_USE_PCA:
             X = self.pca.transform(X)
         Y_probs = self.clf.predict_proba(X)
@@ -111,12 +115,11 @@ class ClassifierOfflineTrain(object):
     def predict_and_evaluate(self, te_X, te_Y):
         te_Y_predict = self.predict(te_X)
         N = len(te_Y)
-        n = sum( te_Y_predict == te_Y )
+        n = sum(te_Y_predict == te_Y)
         accu = n / N
         print("Accuracy is ", accu)
         # print(te_Y_predict)
         return accu, te_Y_predict
-
 
 
 class Timer(object):

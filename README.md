@@ -84,11 +84,11 @@ Copy one of the saved weight file ".ckpt" from "checkpoints/" to "weights/kaggle
 
 * Inference an audio file:  
     For example:
-    > $ python src/s4_inference_audio_file.py --path_to_data test_data/audio_front.wav
+    > $ python src/s4_inference_audio_file.py --data_folder test_data/audio_front.wav
 
 * Inference a folder containing audio files:  
     For example:
-    > $ python src/s4_inference_audio_file.py --path_to_data test_data/
+    > $ python src/s4_inference_audio_file.py --data_folder test_data/
 
 # 6. Reference
 

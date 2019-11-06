@@ -61,8 +61,7 @@ class Timer(object):
         self.t0 = time.time()
     def report_time(self, event="", prefix=""):
         print(prefix + "Time cost of '{}' is: {:.2f} seconds.".format(
-            event, time.time() - self.t0
-        ))
+            event, time.time() - self.t0))
 
 if __name__=="__main__":
     print(change_suffix("abc.jpg", new_suffix='avi'))

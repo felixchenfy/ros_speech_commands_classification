@@ -4,8 +4,8 @@ from __future__ import division
 from __future__ import print_function
 
 import time
-from pynput import keyboard
-from multiprocessing import Process, Value
+import pynput # We need pynput.keyboard
+import multiprocessing
 import subprocess
 import librosa
 import os
@@ -66,19 +66,25 @@ class AudioRecorder(object):
             default="0",
             help="input device (numeric ID or substring)",
         )
-        self.parser.add_argument("-r", "--samplerate", type=int, help="sampling rate")
-        self.parser.add_argument(
-            "-c", "--channels", type=int, default=1, help="number of input channels"
-        )
+        self.parser.add_argument("-r",
+                                 "--samplerate",
+                                 type=int,
+                                 help="sampling rate")
+        self.parser.add_argument("-c",
+                                 "--channels",
+                                 type=int,
+                                 default=1,
+                                 help="number of input channels")
         self.parser.add_argument(
             "filename",
             nargs="?",
             metavar="FILENAME",
             help="audio file to store recording to",
         )
-        self.parser.add_argument(
-            "-t", "--subtype", type=str, help='sound file subtype (e.g. "PCM_24")'
-        )
+        self.parser.add_argument("-t",
+                                 "--subtype",
+                                 type=str,
+                                 help='sound file subtype (e.g. "PCM_24")')
 
         self.args = self.parser.parse_args()
 
@@ -96,14 +102,16 @@ class AudioRecorder(object):
         if not os.path.exists(folder):
             os.makedirs(folder)
 
-        self.filename = tempfile.mktemp(
-            prefix=folder + "audio_" + self.get_time(), suffix=".wav", dir=""
-        )
+        self.filename = tempfile.mktemp(prefix=folder + "audio_" +
+                                        self.get_time(),
+                                        suffix=".wav",
+                                        dir="")
         self.audio_time0 = time.time()
 
         # Start
         # self._thread_alive = True # This seems not working
-        self.thread_record = Process(target=self.record, args=())
+        self.thread_record = multiprocessing.Process(target=self.record,
+                                                     args=())
         self.thread_record.start()
 
     def stop_record(self, sample_rate=16000):
@@ -142,17 +150,17 @@ class AudioRecorder(object):
             q.put(new_val)
 
         with sf.SoundFile(
-            self.filename,
-            mode="x",
-            samplerate=self.args.samplerate,
-            channels=self.args.channels,
-            subtype=self.args.subtype,
+                self.filename,
+                mode="x",
+                samplerate=self.args.samplerate,
+                channels=self.args.channels,
+                subtype=self.args.subtype,
         ) as file:
             with sd.InputStream(
-                samplerate=self.args.samplerate,
-                device=self.args.device,
-                channels=self.args.channels,
-                callback=callback,
+                    samplerate=self.args.samplerate,
+                    device=self.args.device,
+                    channels=self.args.channels,
+                    callback=callback,
             ):
                 print("#" * 80)
                 print("Start recording:")
@@ -182,96 +190,90 @@ class AudioRecorder(object):
             return text
 
     def get_time(self):
-        s = (
-            str(datetime.datetime.now())[5:]
-            .replace(" ", "-")
-            .replace(":", "-")
-            .replace(".", "-")[:-3]
-        )
+        s = (str(datetime.datetime.now())[5:].replace(" ", "-").replace(
+            ":", "-").replace(".", "-")[:-3])
         return s  # day, hour, seconds: 02-26-15-51-12-556
 
 
 class KeyboardMonitor(object):
     # https://pypi.org/project/pynput/1.0.4/
-    def __init__(self, recording_state, is_print=False):
-        self.recording_state = recording_state
-        self.is_print = is_print
-        self.thread = None
-        self.prev_state, self.curr_state = False, False
-
+    def __init__(self, default_key='R', is_print=False):
+        self._recording_state = multiprocessing.Value('i', 0)
+        self._is_print = is_print
+        self._default_key = default_key.upper()
+        self._thread = None
+        self._prev_state, self._curr_state = False, False
+        
+    def _thread_keyboard_monitor(self):
+        with pynput.keyboard.Listener(
+                on_press=self._callback_on_press,
+                on_release=self._callback_on_release) as listener:
+            listener.join()
+    
     def get_key_state(self):
-        ss = (self.prev_state, self.curr_state)
+        ss = (self._prev_state, self._curr_state)
         return ss
 
     def update_key_state(self):
-        self.prev_state = self.curr_state
-        self.curr_state = self.recording_state.value
-        # print("update_key-state", self.get_key_state())
+        self._prev_state = self._curr_state
+        self._curr_state = self._recording_state.value
 
-        # print(self.get_key_state())
-
-    def start_listen(self, run_in_new_thread=False):  # Collect events until released
+    def start_listen(self, run_in_new_thread=False):
+        ''' Start the keyboard listener '''
         if run_in_new_thread:
-            self.thread = Process(target=self._start_listen, args=())
-            self.thread.start()
+            self._thread = multiprocessing.Process(target=self._thread_keyboard_monitor,
+                                                   args=())
+            self._thread.start()
         else:
-            self._start_listen()
+            self._thread_keyboard_monitor()
 
     def stop_listen(self):
-        if self.thread:
-            self.thread.terminate()
+        ''' Stop the keyboard listener '''
+        if self._thread:
+            self._thread.terminate()
 
-    def _start_listen(self):
-        with keyboard.Listener(
-            on_press=self.callback_on_press, on_release=self.callback_on_release
-        ) as listener:
-            listener.join()
+    def is_kept_pressed(self):
+        ''' Check if key is kept pressed '''
+        return (self._prev_state, self._curr_state) == (True, True)
 
-    def key2char(self, key):
+    def is_released(self):
+        ''' Check if key is released '''
+        return not self._curr_state
+
+    def has_just_pressed(self):
+        ''' Check if key has just been pressed '''
+        return (self._prev_state, self._curr_state) == (False, True)
+
+    def has_just_released(self):
+        ''' Check if key has just been released '''
+        return (self._prev_state, self._curr_state) == (True, False)
+
+    def _key2char(self, key):
         try:
             return key.char
         except:
             return str(key)
 
-    def callback_on_press(self, key):
-        key = self.key2char(key)
-        if self.is_print:
+    def _callback_on_press(self, key):
+        key = self._key2char(key)
+        if self._is_print:
             print("\nKey {} is pressed".format(key))
-        self.on_press(key)
+        if key.upper() == self._default_key:
+            self._recording_state.value = 1
 
-    def callback_on_release(self, key):
-        key = self.key2char(key)
-        if self.is_print:
+    def _callback_on_release(self, key):
+        key = self._key2char(key)
+        if self._is_print:
             print("\nKey {} is released".format(key))
-        self.on_release(key)
-
-    def on_press(self, key):
-        if key.upper() == "R":
-            self.recording_state.value = 1
-
-    def on_release(self, key):
-        if key.upper() == "R":
-            self.recording_state.value = 0
-
-    def is_kept_pressed(self):
-        return (self.prev_state, self.curr_state) == (True, True)
-
-    def has_just_pressed(self):
-        return (self.prev_state, self.curr_state) == (False, True)
-
-    def has_just_released(self):
-        return (self.prev_state, self.curr_state) == (True, False)
-
-    def is_released(self):
-        return not self.curr_state
+        if key.upper() == self._default_key:
+            self._recording_state.value = 0
 
 
 if __name__ == "__main__":
 
     # Start keyboard listener
-    recording_state = Value("i", 0)
-    board = KeyboardMonitor(recording_state, is_print=False)
-    board.start_listen(run_in_new_thread=True)
+    keyboard = KeyboardMonitor(is_print=False)
+    keyboard.start_listen(run_in_new_thread=True)
 
     # Set up audio recorder
     recorder = AudioRecorder()
@@ -281,17 +283,18 @@ if __name__ == "__main__":
 
     # Start loop
     while True:
-        tprinter.print("Usage: keep pressing down 'R' to record audio", T_gap=2)
+        tprinter.print("Usage: keep pressing down 'R' to record audio",
+                       T_gap=2)
 
-        board.update_key_state()
-        if board.has_just_pressed():
+        keyboard.update_key_state()
+        if keyboard.has_just_pressed():
 
             # start recording
             recorder.start_record(folder="./data/data_tmp/")
 
             # wait until key release
-            while not board.has_just_released():
-                board.update_key_state()
+            while not keyboard.has_just_released():
+                keyboard.update_key_state()
                 time.sleep(0.001)
 
             # stop recording

@@ -41,18 +41,18 @@ PATH_TO_CLASSES = "config/classes.names"
 
 # -------------------------------------------------
 
-def setup_classifier(load_weights_from):
+def setup_classifier(weight_file_path):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model_args = lib_rnn.set_default_args()
-    model = lib_rnn.create_RNN_model(model_args, load_weights_from)
+    model = lib_rnn.create_RNN_model(model_args, weight_file_path)
     if 0: # random test
         label_index = model.predict(np.random.random((66, 12)))
         print("Label index of a random feature: ", label_index)
         exit("Complete test.")
     return model
 
-def setup_classes_labels(load_classes_from, model):
-    classes = lib_io.read_list(load_classes_from)
+def setup_classes_labels(classes_txt, model):
+    classes = lib_io.read_list(classes_txt)
     print(f"{len(classes)} classes: {classes}")
     model.set_classes(classes)
     
@@ -61,16 +61,15 @@ def inference_from_microphone():
     
     # Setup model
     model = setup_classifier(
-        load_weights_from=PATH_TO_WEIGHTS)
+        weight_file_path=PATH_TO_WEIGHTS)
     
     setup_classes_labels(
-        load_classes_from=PATH_TO_CLASSES,
+        classes_txt=PATH_TO_CLASSES,
         model=model)
     
     # Start keyboard listener
-    recording_state = Value('i', 0)
-    board = KeyboardMonitor(recording_state, is_print=False)
-    board.start_listen(run_in_new_thread=True)
+    keyboard = KeyboardMonitor(is_print=False)
+    keyboard.start_listen(run_in_new_thread=True)
 
     # Set up audio recorder
     recorder = AudioRecorder()
@@ -83,8 +82,8 @@ def inference_from_microphone():
     while True:
         tprinter.print("Usage: keep pressing down 'R' to record audio", T_gap=20)
 
-        board.update_key_state()
-        if board.has_just_pressed():
+        keyboard.update_key_state()
+        if keyboard.has_just_pressed():
             cnt_voice += 1
             print("Record {}th voice".format(cnt_voice))
             
@@ -92,8 +91,8 @@ def inference_from_microphone():
             recorder.start_record(folder=SAVE_AUDIO_TO) 
 
             # wait until key release
-            while not board.has_just_released():
-                board.update_key_state()
+            while not keyboard.has_just_released():
+                keyboard.update_key_state()
                 time.sleep(0.001)
 
             # stop recording
@@ -108,7 +107,7 @@ def inference_from_microphone():
 
             # Shout out the results. e.g.: one is two
             lib_datasets.shout_out_result(recorder.filename, predicted_label,
-                    preposition_word="is",
+                    middle_word="is",
                     cache_folder="data/examples/")
                 
             # reset for better printing

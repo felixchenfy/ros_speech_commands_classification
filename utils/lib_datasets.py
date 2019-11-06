@@ -2,17 +2,16 @@
 #!/usr/bin/env python2
 from __future__ import division
 from __future__ import print_function
-
 ''' 
 
 ` class AudioClass
-wraps up related operations on an audio
+A set of operations on audio.
 
 ` class AudioDataset
-a dataset for loading audios and labels from folder, for training by torch
+A class for loading audios and labels from folder for training the model by Torch.
 
 ` def synthesize_audio
-API to synthesize one audio
+Synthesize the audio given a string.
 
 '''
 
@@ -256,7 +255,7 @@ class AudioClass(object):
                                     return_mfcc=True)
 
         l1 = len(self.data) / self.sample_rate
-        print(f"Audio after removing silence: {l0} s --> {l0} s")
+        print(f"Audio after removing silence: {l0} s --> {l1} s")
 
     # --------------------------- Plotting ---------------------------
     def plot_audio(self, plt_show=False, ax=None):
@@ -311,7 +310,15 @@ def synthesize_audio(text,
                      lang='en',
                      tmp_filename=".tmp_audio_from_SynthesizedAudio.wav",
                      is_print=False):
-
+    '''
+    Synthesize the audio of the text
+    Arguments:
+        text {str}: a word to be converted to audio.
+        lang {str}: language
+        tmp_filename {str}: path to save a temporary file for converting audio.
+    Return:
+        audio {AudioClass}
+    '''
     # Create audio
     assert lang in ['en', 'en-uk', 'en-au',
                     'en-in']  # 4 types of acsents to choose
@@ -333,17 +340,26 @@ def synthesize_audio(text,
     return audio
 
 
-def shout_out_result(filename,
+def shout_out_result(audio_filepath,
                      predicted_label,
-                     preposition_word="is",
+                     middle_word="is",
                      cache_folder="data/examples/"):
+    '''
+    Play three audios in sequence: audio_filepath, middle_word, predicted_label.
+    For example:
+        Three arguments are:
+            audio_filepath = "dog.wav", which contains the word "dog";
+            middle_word = "is";
+            predicted_label = "cat";
+        Then the pronounced setence is: "dog is cat"
+    '''
 
     if not os.path.exists(cache_folder):  # create folder
         os.makedirs(cache_folder)
 
-    fname_preword = cache_folder + preposition_word + ".wav"  # create file
+    fname_preword = cache_folder + middle_word + ".wav"  # create file
     if not os.path.exists(fname_preword):
-        synthesize_audio(text=preposition_word,
+        synthesize_audio(text=middle_word,
                          is_print=True).write_to_file(filename=fname_preword)
 
     fname_predict = cache_folder + predicted_label + ".wav"  # create file
@@ -351,21 +367,24 @@ def shout_out_result(filename,
         synthesize_audio(text=predicted_label,
                          is_print=True).write_to_file(filename=fname_predict)
 
-    lib_io.play_audio(filename=filename)
+    lib_io.play_audio(filename=audio_filepath)
     lib_io.play_audio(filename=fname_preword)
     lib_io.play_audio(filename=fname_predict)
 
 
-def get_wav_filenames(path_to_data):
-    ''' Only audio data with .wav suffix are supported by this script '''
-    if os.path.isdir(path_to_data):
-        filenames = glob.glob(path_to_data + "/*.wav")
-        assert len(filenames), "No .wav files in folder: {}".format(
-            (path_to_data))
-    elif ".wav" in path_to_data:
-        filenames = [path_to_data]
+def get_wav_filenames(data_folder, suffix=".wav"):
+    ''' Get all wav files under the folder;
+    '''
+    if suffix[0] != ".":
+        suffix = "." + suffix
+    if os.path.isdir(data_folder):
+        filenames = glob.glob(data_folder + "/*" + suffix)
+        if not filenames:
+            raise RuntimeError("No .wav files in folder: " + data_folder)
+    elif suffix in data_folder:
+        filenames = [data_folder]
     else:
-        raise ValueError('Wrong path_to_data. Only .wav file is supported')
+        raise ValueError('Wrong data_folder. Only .wav file is supported')
     return filenames
 
 
