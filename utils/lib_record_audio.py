@@ -54,15 +54,30 @@ class TimerPrinter(object):
 
     def print(self, s):
         curr_time = time.time()
-        if curr_time - self._prev_time < self._t_print_gap:
-            return
-        else:
+        if curr_time - self._prev_time >= self._t_print_gap:
             self._prev_time = curr_time
             print(s)
 
     def reset(self):
         self._prev_time = -999.0
 
+class BoolControlByFile(object):
+    def __init__(self, filename):
+        self._filename = filename
+        self.set_true()
+
+    def set_true(self):
+        with open(self._filename, 'w') as f:
+            f.write("1")
+
+    def set_false(self):
+        with open(self._filename, 'w') as f:
+            f.write("0")
+
+    def get_bool(self):
+        with open(self._filename, 'r') as f:
+            return f.readline() == "1"        
+        raise RuntimeError("Error openning: " + self._filename)
 
 class AudioRecorder(object):
     '''
@@ -136,11 +151,12 @@ class AudioRecorder(object):
         self.audio_time0 = time.time()
 
         # Start
-        self._is_thread_alive = multiprocessing.Value('i', 1)
-        # self._thread = multiprocessing.Process(
-        #     target=self._thread_for_recording, args=(self._is_thread_alive, ))
-        self._thread = threading.Thread(
+        # self._is_thread_alive = multiprocessing.Value('i', 1)
+        self._is_thread_alive = BoolControlByFile(filename=ROOT + ".tmp_is_recording_audio_thread_on.txt")
+        self._thread = multiprocessing.Process(
             target=self._thread_for_recording, args=(self._is_thread_alive, ))
+        # self._thread = threading.Thread(
+        #     target=self._thread_for_recording, args=(self._is_thread_alive, ))
         self._thread.daemon = True
         self._thread.start()
 
@@ -155,8 +171,9 @@ class AudioRecorder(object):
 
         # Stop thread
         # self._thread.terminate()
-        self._is_thread_alive.Value = 0
-        time.sleep(0.1)
+        # self._is_thread_alive.Value = 0
+        self._is_thread_alive.set_false()
+        time.sleep(0.05)
 
         if 0:  # Print dashed lines
             print("\n\n" + "/" * 80)
@@ -228,12 +245,13 @@ class AudioRecorder(object):
                 print("Start recording:")
                 print("#" * 80)
                 t0 = time.time()
-                while is_thread_alive.value != 0:
+                # while is_thread_alive.value != 0:
+                while is_thread_alive.get_bool() != 0:
                     values = q.get()
                     ret, average = abs_average_calculator.add_numbers(values)
                     if ret:
                         dt = time.time() - t0
-                        print(is_thread_alive.value)
+                        # print(is_thread_alive.value)
                         with open(self._recording_state_filename, 'w') as f:
                             f.write("{:.2f}, {:.3f}".format(dt, average))
                     file.write(values)

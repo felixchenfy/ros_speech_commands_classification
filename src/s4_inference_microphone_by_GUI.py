@@ -80,7 +80,7 @@ class AudioClassifierWithGUI(object):
         print("\nPredicted label: {}, probability: {}\n".format(
             predicted_label, max_prob))
         PROB_THRESHOLD = 0.8
-        final_label  = predicted_label if max_prob > PROB_THRESHOLD else "None"
+        final_label  = predicted_label if max_prob > PROB_THRESHOLD else "none"
         
         # -- Update the image
 

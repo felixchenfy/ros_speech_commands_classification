@@ -270,7 +270,7 @@ class GuiForAudioClassification(object):
 
     def set_img2(
             self,
-            final_label="None",
+            final_label="none",
             predicted_label="",
             probability=0,
             length=0,
