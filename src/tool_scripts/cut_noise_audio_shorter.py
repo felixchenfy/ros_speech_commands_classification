@@ -1,4 +1,11 @@
-# Randomly cut audios shorter
+# -*- coding: future_fstrings -*-
+#!/usr/bin/env python2
+from __future__ import division
+from __future__ import print_function
+
+'''
+Randomly cut audios shorter
+'''
 
 if 1: # Set path
     import sys, os

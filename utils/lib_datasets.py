@@ -42,66 +42,76 @@ if 1:  # my lib
 
 
 class AudioDataset(Dataset):
+    ''' A dataset class for Pytorch to load data '''
     def __init__(
             self,
             data_folder="",
             classes_txt="",
-            files_name=[],
-            files_label=[],
+            file_paths=[],
+            file_labels=[],
             transform=None,
-            bool_cache_audio=False,
-            bool_cache_XY=True,  # cache features
+            is_cache_audio=False,
+            is_cache_XY=True,  # cache features
     ):
 
-        assert (data_folder and classes_txt) or (files_name, files_label
+        assert (data_folder and classes_txt) or (file_paths, file_labels
                                                  )  # input either one
 
         # Get all data's filename and label
-        if files_name and files_label:
-            self.files_name, self.files_label = files_name, files_label
-        else:
-            func = AudioDataset.load_filenames_and_labels
-            self.files_name, self.files_label = func(data_folder, classes_txt)
-        self.files_label = torch.tensor(self.files_label, dtype=torch.int64)
-        self.transform = transform
+        if not (file_paths and file_labels):
+            file_paths, file_labels = AudioDataset.load_classes_and_data_filenames(
+                classes_txt, data_folder)
+        self._file_paths = file_paths
+        self._file_labels = torch.tensor(file_labels, dtype=torch.int64)
+        
+        # Data augmentation methods are saved inside the `transform`
+        self._transform = transform
 
         # Cache computed data
-        self.bool_cache_audio = bool_cache_audio
-        self.cached_audio = {}  # idx : audio
-        self.bool_cache_XY = bool_cache_XY
-        self.cached_XY = {
-        }  # idx : (X, Y). By default, features will be cached
+        self._IS_CACHE_AUDIO = is_cache_audio
+        self._cached_audio = {}  # idx : audio
+        self._IS_CACHE_XY = is_cache_XY
+        self._cached_XY = {}  # idx : (X, Y). By default, features will be cached
 
     @staticmethod
-    def load_filenames_and_labels(data_folder, classes_txt):
+    def load_classes_and_data_filenames(classes_txt, data_folder):
+        '''
+        Load classes names and all training data's file_paths.
+        Arguments:
+            classes_txt {str}: filepath of the classes.txt
+            data_folder {str}: path to the data folder.
+                The folder should contain subfolders named as the class name.
+                Each subfolder contain many .wav files.
+        '''
         # Load classes
         with open(classes_txt, 'r') as f:
             classes = [l.rstrip() for l in f.readlines()]
 
         # Based on classes, load all filenames from data_folder
-        files_name = []
-        files_label = []
+        file_paths = []
+        file_labels = []
         for i, label in enumerate(classes):
             folder = data_folder + "/" + label + "/"
 
             names = lib_commons.get_filenames(folder, file_types="*.wav")
             labels = [i] * len(names)
 
-            files_name.extend(names)
-            files_label.extend(labels)
+            file_paths.extend(names)
+            file_labels.extend(labels)
 
         print("Load data from: ", data_folder)
         print("\tClasses: ", ", ".join(classes))
-        return files_name, files_label
+        return file_paths, file_labels
 
     def __len__(self):
-        return len(self.files_name)
+        return len(self._file_paths)
 
     def get_audio(self, idx):
+        ''' Load (idx)th audio, either from cached data, or from disk '''
         if idx in self.cached_audio:  # load from cached
             audio = copy.deepcopy(self.cached_audio[idx])  # copy from cache
         else:  # load from file
-            filename = self.files_name[idx]
+            filename = self._file_paths[idx]
             audio = AudioClass(filename=filename)
             # print(f"Load file: {filename}")
             self.cached_audio[idx] = copy.deepcopy(audio)  # cache a copy
@@ -112,36 +122,36 @@ class AudioDataset(Dataset):
         timer = lib_commons.Timer()
 
         # -- Load audio
-        if self.bool_cache_audio:
+        if self._IS_CACHE_AUDIO:
             audio = self.get_audio(idx)
             print("{:<20}, len={}, file={}".format("Load audio from file",
                                                    audio.get_len_s(),
                                                    audio.filename))
         else:  # load audio from file
-            if (idx in self.cached_XY) and (not self.transform):
+            if (idx in self._cached_XY) and (not self._transform):
                 # if (1) audio has been processed, and (2) we don't need data augumentation,
-                # then, we don't need audio data at all. Instead, we only need features from self.cached_XY
+                # then, we don't need audio data at all. Instead, we only need features from self._cached_XY
                 pass
             else:
-                filename = self.files_name[idx]
+                filename = self._file_paths[idx]
                 audio = AudioClass(filename=filename)
 
         # -- Compute features
-        read_features_from_cache = (self.bool_cache_XY) and (
-            idx in self.cached_XY) and (not self.transform)
+        is_read_features_from_cache = (self._IS_CACHE_XY) and (
+            idx in self._cached_XY) and (not self._transform)
 
         # Read features from cache:
         #   If already computed, and no augmentatation (transform), then read from cache
-        if read_features_from_cache:
-            X, Y = self.cached_XY[idx]
+        if is_read_features_from_cache:
+            X, Y = self._cached_XY[idx]
 
         # Compute features:
         #   if (1) not loaded, or (2) need new transform
         else:
             # Do transform (augmentation)
-            if self.transform:
-                audio = self.transform(audio)
-                # self.transform(audio) # this is also good. Transform (Augment) is done in place.
+            if self._transform:
+                audio = self._transform(audio)
+                # self._transform(audio) # this is also good. Transform (Augment) is done in place.
 
             # Compute mfcc feature
             audio.compute_mfcc(n_mfcc=12)  # return mfcc
@@ -150,11 +160,11 @@ class AudioDataset(Dataset):
             X = torch.tensor(
                 audio.mfcc.T,
                 dtype=torch.float32)  # shape=(time_len, feature_dim)
-            Y = self.files_label[idx]
+            Y = self._file_labels[idx]
 
             # Cache
-            if self.bool_cache_XY and (not self.transform):
-                self.cached_XY[idx] = (X, Y)
+            if self._IS_CACHE_XY and (not self._transform):
+                self._cached_XY[idx] = (X, Y)
 
         # print("{:>20}, len={:.3f}s, file={}".format("After transform", audio.get_len_s(), audio.filename))
         # timer.report_time(event="Load audio", prefix='\t')
@@ -162,6 +172,9 @@ class AudioDataset(Dataset):
 
 
 class AudioClass(object):
+    ''' A wrapper around the audio data
+        to provide easy access to common operations on audio data.
+    '''
     def __init__(self, data=None, sample_rate=None, filename=None, n_mfcc=12):
         if filename:
             self.data, self.sample_rate = lib_io.read_audio(

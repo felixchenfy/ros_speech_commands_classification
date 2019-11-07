@@ -76,7 +76,7 @@ Copy one of the saved weight file ".ckpt" from "checkpoints/" to "weights/kaggle
 
 * Inference from microphone:
     1. Run the main program:  
-        > $ python src/s3_inference_microphone.py
+        > $ python src/s3_inference_microphone_by_terminal.py
     2. Press "R" on your keyboard to start recording the audio.
     3. Say a word among the above 10 words, or say nothing.
     4. Release the key "R" to stop recording.
@@ -84,11 +84,11 @@ Copy one of the saved weight file ".ckpt" from "checkpoints/" to "weights/kaggle
 
 * Inference an audio file:  
     For example:
-    > $ python src/s4_inference_audio_file.py --data_folder test_data/audio_front.wav
+    > $ python src/s5_inference_audio_file.py --data_folder test_data/audio_front.wav
 
 * Inference a folder containing audio files:  
     For example:
-    > $ python src/s4_inference_audio_file.py --data_folder test_data/
+    > $ python src/s5_inference_audio_file.py --data_folder test_data/
 
 # 6. Reference
 

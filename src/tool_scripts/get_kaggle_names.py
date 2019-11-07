@@ -1,4 +1,6 @@
-# print the filenames in a folder
+'''
+Print all folder filenames under a folder
+'''
 
 import os 
 names = [name for name in os.listdir("kaggle/") if os.path.isdir(name)] 

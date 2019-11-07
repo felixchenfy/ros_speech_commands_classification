@@ -1,4 +1,12 @@
-# resample audios to 16000 sample rate.
+# -*- coding: future_fstrings -*-
+#!/usr/bin/env python2
+from __future__ import division
+from __future__ import print_function
+
+'''
+Resample all audios under a folder to a sampling rate of 16000.
+'''
+
 import glob 
 import os 
 import soundfile as sf

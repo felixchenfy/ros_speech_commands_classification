@@ -52,8 +52,10 @@ def to_tuple(val, left_bound=None):
 
 
 def random_crop(arr, N):
-    # crop a subarray from array, which has an exact length of N.
-    # If len(arr)<N, arr will be duplicated first to make the length > N
+    '''
+    crop a subarray from array, which has an exact length of N.
+    If len(arr)<N, arr will be duplicated first to make the length > N
+    '''
     n = len(arr)
     if n < N:
         arr = np.tile(arr, 1 + (N // n))

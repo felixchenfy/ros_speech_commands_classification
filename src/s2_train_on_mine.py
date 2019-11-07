@@ -39,13 +39,13 @@ args.save_model_to = 'checkpoints/' # Save model and log file
 # Dataset -------------------------- 
 
 # Get data's filenames and labels
-files_name, files_label = lib_datasets.AudioDataset.load_filenames_and_labels(
-    args.data_folder, args.classes_txt)
+file_paths, file_labels = lib_datasets.AudioDataset.load_classes_and_data_filenames(
+    args.classes_txt, args.data_folder)
 
 if 0: # DEBUG: use only a subset of all data
     GAP = 20
-    files_name = files_name[::GAP]
-    files_label = files_label[::GAP]
+    file_paths = file_paths[::GAP]
+    file_labels = file_labels[::GAP]
     args.num_epochs = 5
     
 # Set data augmentation
@@ -64,9 +64,9 @@ else:
 
 # Split data into train/eval/test
 tr_X, tr_Y, ev_X, ev_Y, te_X, te_Y = lib_ml.split_train_eval_test(
-    X=files_name, Y=files_label, ratios=args.train_eval_test_ratio, dtype='list')
-train_dataset = lib_datasets.AudioDataset(files_name=tr_X, files_label=tr_Y, transform=aug)
-eval_dataset = lib_datasets.AudioDataset(files_name=ev_X, files_label=ev_Y, transform=None)
+    X=file_paths, Y=file_labels, ratios=args.train_eval_test_ratio, dtype='list')
+train_dataset = lib_datasets.AudioDataset(file_paths=tr_X, file_labels=tr_Y, transform=aug)
+eval_dataset = lib_datasets.AudioDataset(file_paths=ev_X, file_labels=ev_Y, transform=None)
 
 # Data loader
 train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=args.batch_size, shuffle=True)

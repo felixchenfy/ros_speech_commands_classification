@@ -8,11 +8,11 @@ from __future__ import print_function
 Testing commands for this script:
 
     One file:
-    $ python src/s4_inference_audio_file.py --data_folder test_data/audio_front.wav
-    $ python src/s4_inference_audio_file.py --data_folder test_data/audio_three.wav
+    $ python src/s5_inference_audio_file.py --data_folder test_data/audio_front.wav
+    $ python src/s5_inference_audio_file.py --data_folder test_data/audio_three.wav
 
     A folder:
-    $ python src/s4_inference_audio_file.py --data_folder data/data_train/three
+    $ python src/s5_inference_audio_file.py --data_folder data/data_train/three
     
 '''       
 if 1: # Set path

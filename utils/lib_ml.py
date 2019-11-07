@@ -12,6 +12,7 @@ import types
 
 class SimpleNamespace:
     ''' This is the same as types.SimpleNamespace '''
+
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
@@ -27,7 +28,7 @@ class SimpleNamespace:
 def split_train_test(X,
                      Y,
                      test_size=0,
-                     USE_ALL=False,
+                     use_all_data_to_train=False,
                      dtype='numpy',
                      if_print=True):
 
@@ -41,21 +42,21 @@ def split_train_test(X,
     if dtype == 'numpy':
         _print("\tData size = {}, feature dimension = {}".format(
             X.shape[0], X.shape[1]))
-        if USE_ALL:
+        if use_all_data_to_train:
             tr_X = np.copy(X)
             tr_Y = np.copy(Y)
             te_X = np.copy(X)
             te_Y = np.copy(Y)
         else:
             f = sklearn.model_selection.train_test_split
-            tr_X, te_X, tr_Y, te_Y = f(X,
-                                       Y,
-                                       test_size=test_size,
-                                       random_state=14123)
+            tr_X, te_X, tr_Y, te_Y = f(
+                X, Y, test_size=test_size, random_state=14123)
+
     elif dtype == 'list':
         _print("\tData size = {}, feature dimension = {}".format(
             len(X), len(X[0])))
-        if USE_ALL:
+        
+        if use_all_data_to_train:
             tr_X = X[:]
             tr_Y = Y[:]
             te_X = X[:]
