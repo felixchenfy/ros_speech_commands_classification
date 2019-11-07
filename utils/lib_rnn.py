@@ -61,7 +61,7 @@ def set_default_args():
     args.gradient_accumulations = 16  # number of gradient accums before step
 
     # training params2
-    args.load_weights_from = None
+    args.load_weight_from = None
     args.finetune_model = False  # If true, fix all parameters except the fc layer
     args.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -110,7 +110,7 @@ def load_weights(model, weights, is_print=False):
             model_state[name].copy_(param)
 
 
-def create_RNN_model(args, load_weights_from=None):
+def create_RNN_model(args, load_weight_from=None):
     ''' A wrapper for creating a 'class RNN' instance '''
 
     # Update some dependent args
@@ -125,9 +125,9 @@ def create_RNN_model(args, load_weights_from=None):
                 args.num_classes, device).to(device)
 
     # Load weights
-    if load_weights_from:
-        print(f"Load weights from: {load_weights_from}")
-        weights = torch.load(load_weights_from)
+    if load_weight_from:
+        print(f"Load weights from: {load_weight_from}")
+        weights = torch.load(load_weight_from)
         load_weights(model, weights)
 
     return model

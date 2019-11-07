@@ -37,10 +37,10 @@ if 1: # my lib
 
 
 
-def setup_classifier(load_weights_from):
+def setup_classifier(load_weight_from):
     model_args = lib_rnn.set_default_args()
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = lib_rnn.create_RNN_model(model_args, load_weights_from)
+    model = lib_rnn.create_RNN_model(model_args, load_weight_from)
     return model
 
 def setup_classes_labels(load_classes_from, model):
@@ -52,10 +52,10 @@ def setup_classes_labels(load_classes_from, model):
 def main(args):
     
     model = setup_classifier(
-        load_weights_from=args.path_to_weights)
+        load_weight_from=args.weight_path)
     
     setup_classes_labels(
-        load_classes_from=args.path_to_classes,
+        load_classes_from=args.classes_path,
         model=model)
     
     filenames = lib_datasets.get_wav_filenames(
@@ -73,9 +73,9 @@ def main(args):
 if __name__=="__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     
-    parser.add_argument('--path_to_weights', type=str, help='path to the pretrained weights',
+    parser.add_argument('--weight_path', type=str, help='path to the pretrained weights',
                         default="weights/my.ckpt")
-    parser.add_argument('--path_to_classes', type=str, help='path to classes.names',
+    parser.add_argument('--classes_path', type=str, help='path to classes.names',
                         default="config/classes.names")
     parser.add_argument('--data_folder', type=str, help='path to an .wav file, or to a folder containing .wav files')
     

@@ -32,7 +32,7 @@ args.train_eval_test_ratio=[0.7, 0.3, 0.0]
 args.do_data_augment = True
 args.data_folder = "data/data_train/"
 args.classes_txt = "config/classes.names" 
-args.load_weights_from = "weights/kaggle.ckpt"
+args.load_weight_from = "weights/kaggle.ckpt"
 args.finetune_model = True # If true, fix all parameters except the fc layer
 args.save_model_to = 'checkpoints/' # Save model and log file
 
@@ -73,5 +73,5 @@ train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=arg
 eval_loader = torch.utils.data.DataLoader(dataset=eval_dataset, batch_size=args.batch_size, shuffle=True)
 
 # Create model and train -------------------------------------------------
-model = lib_rnn.create_RNN_model(args, load_weights_from=args.load_weights_from) # create model
+model = lib_rnn.create_RNN_model(args, load_weight_from=args.load_weight_from) # create model
 lib_rnn.train_model(model, args, train_loader, eval_loader)

@@ -365,8 +365,8 @@ def read_list(filename):
 
 
 def test_GUI_1():
-    PATH_TO_CLASSES = ROOT + "config/classes.names"
-    classes = read_list(PATH_TO_CLASSES)
+    SRC_CLASSES_PATH = ROOT + "config/classes.names"
+    classes = read_list(SRC_CLASSES_PATH)
     gui = GuiForAudioClassification(classes)
     while not gui.is_key_quit_pressed():
         if gui.is_key_pressed():
@@ -387,8 +387,8 @@ def test_GUI_1():
 
 
 def test_GUI_2():
-    PATH_TO_CLASSES = ROOT + "config/classes.names"
-    classes = read_list(PATH_TO_CLASSES)
+    SRC_CLASSES_PATH = ROOT + "config/classes.names"
+    classes = read_list(SRC_CLASSES_PATH)
     gui = GuiForAudioClassification(classes)
 
     while not gui.is_key_quit_pressed():

@@ -36,7 +36,7 @@ args.do_data_augment = True
 args.train_eval_test_ratio=[0.9, 0.1, 0.0]
 args.data_folder = "data/kaggle/"
 args.classes_txt = "config/classes_kaggle.names" 
-args.load_weights_from = None
+args.load_weight_from = None
 
 # Dataset -------------------------- 
 
@@ -75,5 +75,5 @@ train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=arg
 eval_loader = torch.utils.data.DataLoader(dataset=eval_dataset, batch_size=args.batch_size, shuffle=True)
 
 # Create model and train -------------------------------------------------
-model = lib_rnn.create_RNN_model(args, load_weights_from=args.load_weights_from) # create model
+model = lib_rnn.create_RNN_model(args, load_weight_from=args.load_weight_from) # create model
 lib_rnn.train_model(model, args, train_loader, eval_loader)

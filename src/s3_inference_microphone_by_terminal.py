@@ -35,9 +35,9 @@ if 1: # my lib
 
 # -------------------------------------------------
 # -- Settings
-SAVE_AUDIO_TO = "data/data_tmp/"
-PATH_TO_WEIGHTS = "weights/my.ckpt"
-PATH_TO_CLASSES = "config/classes.names"
+SRC_WEIGHT_PATH = "weights/my.ckpt"
+SRC_CLASSES_PATH = "config/classes.names"
+DST_AUDIO_FOLDER = "data/data_tmp/"
 
 # -------------------------------------------------
 
@@ -61,10 +61,10 @@ def inference_from_microphone():
     
     # Setup model
     model = setup_classifier(
-        weight_file_path=PATH_TO_WEIGHTS)
+        weight_file_path=SRC_WEIGHT_PATH)
     
     setup_classes_labels(
-        classes_txt=PATH_TO_CLASSES,
+        classes_txt=SRC_CLASSES_PATH,
         model=model)
     
     # Start keyboard listener
@@ -86,7 +86,7 @@ def inference_from_microphone():
             print("\nRecord {}th voice".format(cnt_voice))
             
             # Record audio
-            recorder.start_record(folder=SAVE_AUDIO_TO)  # Start record
+            recorder.start_record(folder=DST_AUDIO_FOLDER)  # Start record
             while not keyboard.is_key_released():  # Wait for key released
                 time.sleep(0.001)
             recorder.stop_record()  # Stop record
