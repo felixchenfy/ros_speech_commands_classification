@@ -35,37 +35,18 @@ if 1: # my lib
 
 # -------------------------------------------------
 # -- Settings
-SRC_WEIGHT_PATH = "weights/my.ckpt"
-SRC_CLASSES_PATH = "config/classes.names"
-DST_AUDIO_FOLDER = "data/data_tmp/"
+SRC_WEIGHT_PATH = ROOT + "weights/my.ckpt"
+SRC_CLASSES_PATH = ROOT + "config/classes.names"
+DST_AUDIO_FOLDER = ROOT + "data/data_tmp/"
 
 # -------------------------------------------------
-
-def setup_classifier(weight_file_path):
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model_args = lib_rnn.set_default_args()
-    model = lib_rnn.create_RNN_model(model_args, weight_file_path)
-    if 0: # Test with random data
-        label_index = model.predict(np.random.random((66, 12)))
-        print("Label index of a random feature: ", label_index)
-        exit("Complete test.")
-    return model
-
-def setup_classes_labels(classes_txt, model):
-    classes = lib_io.read_list(classes_txt)
-    print(f"{len(classes)} classes: {classes}")
-    model.set_classes(classes)
-    
-    
+# -- Main function    
 def inference_from_microphone():
     
     # Setup model
-    model = setup_classifier(
-        weight_file_path=SRC_WEIGHT_PATH)
-    
-    setup_classes_labels(
-        classes_txt=SRC_CLASSES_PATH,
-        model=model)
+    model, classes = lib_rnn.setup_default_RNN_model(
+        weight_filepath=SRC_WEIGHT_PATH, classes_txt=SRC_CLASSES_PATH)
+    print(f"{len(classes)} classes: {classes}")
     
     # Start keyboard listener
     keyboard = KeyboardInputFromTerminal(

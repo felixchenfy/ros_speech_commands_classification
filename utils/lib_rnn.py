@@ -71,7 +71,7 @@ def set_default_args():
     args.do_data_augment = False
 
     # labels
-    args.classes_txt = "config/classes.names"
+    args.classes_txt = ""
     args.num_classes = None  # should be added with a value somewhere, like this:
     #                = len(lib_io.read_list(args.classes_txt))
 
@@ -109,13 +109,17 @@ def load_weights(model, weights, is_print=False):
         else:
             model_state[name].copy_(param)
 
-
 def create_RNN_model(args, load_weight_from=None):
     ''' A wrapper for creating a 'class RNN' instance '''
 
     # Update some dependent args
-    args.num_classes = len(lib_io.read_list(
-        args.classes_txt))  # read from "config/classes.names"
+    if  hasattr(args, "classes"):
+        classes = args.classes
+    elif hasattr(args, "classes_txt"):
+        classes = lib_io.read_list(args.classes_txt)
+    else:
+        raise RuntimeError("The classes are no loaded into the RNN model.")
+    args.num_classes = len(classes)
     args.save_log_to = args.save_model_to + "log.txt"
     args.save_fig_to = args.save_model_to + "fig.jpg"
 
@@ -123,7 +127,8 @@ def create_RNN_model(args, load_weight_from=None):
     device = args.device
     model = RNN(args.input_size, args.hidden_size, args.num_layers,
                 args.num_classes, device).to(device)
-
+    model.set_classes(classes)
+    
     # Load weights
     if load_weight_from:
         print(f"Load weights from: {load_weight_from}")
@@ -132,6 +137,21 @@ def create_RNN_model(args, load_weight_from=None):
 
     return model
 
+
+def setup_default_RNN_model(weight_filepath, classes_txt):
+    ''' Given filepath of the weight file and the classes,
+        Initilize the RNN model with default parameters.
+    '''
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model_args = set_default_args()
+    model_args.classes_txt = classes_txt
+    model = create_RNN_model(model_args, weight_filepath)
+    classes = model.classes
+    if 0: # Test with random data
+        label_index = model.predict(np.random.random((66, 12)))
+        print("Label index of a random feature: ", label_index)
+        exit("Complete test.")
+    return model, classes
 
 # Recurrent neural network (many-to-one)
 class RNN(nn.Module):

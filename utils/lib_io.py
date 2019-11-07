@@ -3,6 +3,13 @@
 from __future__ import division
 from __future__ import print_function
 
+if True:  # Include project path
+    import sys
+    import os
+    ROOT = os.path.dirname(os.path.abspath(__file__))+"/../"
+    sys.path.append(ROOT)
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import soundfile as sf
@@ -18,7 +25,7 @@ def play_audio(filename=None, data=None, sample_rate=None):
         subprocess.call(["cvlc", "--play-and-exit", filename])
     else:
         print("Play audio data")
-        filename = '.tmp_audio_from_play_audio.wav'
+        filename = ROOT + '.tmp_audio_from_play_audio.wav'
         write_audio(filename, data, sample_rate)
         subprocess.call(["cvlc", "--play-and-exit", filename])
 

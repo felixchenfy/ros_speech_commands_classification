@@ -35,23 +35,19 @@ if 1: # my lib
     from utils.lib_record_audio import * # argparse comes crom here
 
 # -- Settings
-SRC_WEIGHT_PATH = "weights/my.ckpt"
-SRC_CLASSES_PATH = "config/classes.names"
-DST_AUDIO_FOLDER = "data/data_tmp/"
+SRC_WEIGHT_PATH = ROOT + "weights/my.ckpt"
+SRC_CLASSES_PATH = ROOT + "config/classes.names"
+DST_AUDIO_FOLDER = ROOT + "data/data_tmp/"
 
 # -- Main class for reading audio from microphone, doing inference, and display result
 class AudioClassifierWithGUI(object):
     
     def __init__(self, src_weight_path, src_classes_path, dst_audio_folder):
 
-        # Load classes
-        classes = lib_io.read_list(SRC_CLASSES_PATH)
-        print("Number of classes = {}, classes: {}".format(
-            len(classes), classes))
-        self._CLASSES = classes
-
         # Init model
-        model = self._setup_classifier(src_weight_path)
+        model, classes = lib_rnn.setup_default_RNN_model(src_weight_path, src_classes_path)
+        self._CLASSES = classes
+        print("Number of classes = {}, classes: {}".format(len(classes), classes))
         model.set_classes(classes)
         self._model = model        
 
@@ -59,15 +55,17 @@ class AudioClassifierWithGUI(object):
         self._gui = GuiForAudioClassification(classes, hotkey="R")
 
         # Set up audio recorder
+        self._DST_AUDIO_FOLDER = dst_audio_folder
         self._recorder = AudioRecorder()
 
-    def record_audio_and_classifiy(self):
+    def record_audio_and_classifiy(self,
+            shout_out_result=False):
         model, classes = self._model, self._CLASSES
         gui, recorder = self._gui, self._recorder 
 
         # -- Record audio
         gui.enable_img1_self_updating()
-        recorder.start_record(folder=DST_AUDIO_FOLDER)  # Start record
+        recorder.start_record(folder=self._DST_AUDIO_FOLDER)  # Start record
         while not gui.is_key_released():  # Wait for key released
             time.sleep(0.001)
         recorder.stop_record()  # Stop record
@@ -103,19 +101,14 @@ class AudioClassifierWithGUI(object):
         gui.set_img3(probabilities=probs)
         
         # -- Shout out the results. e.g.: two is one
-        lib_datasets.shout_out_result(recorder.filename, final_label,
+        if shout_out_result:
+            lib_datasets.shout_out_result(
+                recorder.filename, # Raw audio to shout out
+                final_label,
                 middle_word="is",
                 cache_folder="data/examples/")
-        
-    def _setup_classifier(self, weight_file_path):
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        model_args = lib_rnn.set_default_args()
-        model = lib_rnn.create_RNN_model(model_args, weight_file_path)
-        if 0: # Test with random data
-            label_index = model.predict(np.random.random((66, 12)))
-            print("Label index of a random feature: ", label_index)
-            exit("Complete test.")
-        return model
+
+        return predicted_label, max_prob
 
     def is_key_quit_pressed(self):
         return self._gui.is_key_quit_pressed()
@@ -134,14 +127,11 @@ def inference_from_microphone():
         SRC_WEIGHT_PATH, SRC_CLASSES_PATH, DST_AUDIO_FOLDER)
 
     # Start loop
-    cnt_voice = 0
     timer_printer = TimerPrinter(print_period=2.0)  # for print
     while not audio_clf.is_key_quit_pressed():
         timer_printer.print("Usage: keep pressing down 'R' to record audio")
         if audio_clf.is_key_pressed():
-            cnt_voice += 1
-            print("\nRecord {}th voice".format(cnt_voice))
-            audio_clf.record_audio_and_classifiy()
+            audio_clf.record_audio_and_classifiy(shout_out_result=True)
         time.sleep(0.1)
 
 if __name__=="__main__":

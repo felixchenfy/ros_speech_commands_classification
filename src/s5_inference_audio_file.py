@@ -14,71 +14,65 @@ Testing commands for this script:
     A folder:
     $ python src/s5_inference_audio_file.py --data_folder data/data_train/three
     
-'''       
-if 1: # Set path
-    import sys, os
-    ROOT = os.path.dirname(os.path.abspath(__file__))+"/../" # root of the project
-    sys.path.append(ROOT)
-    
-import numpy as np 
-import torch 
-import argparse
-import glob 
+'''
 
-if 1: # my lib
-    import utils.lib_io as lib_io
-    import utils.lib_commons as lib_commons
-    import utils.lib_datasets as lib_datasets
-    import utils.lib_augment as lib_augment
-    import utils.lib_ml as lib_ml
-    import utils.lib_rnn as lib_rnn
- 
+if 1:  # Set path
+    import sys
+    import os
+    ROOT = os.path.dirname(os.path.abspath(__file__)) + "/../"
+    sys.path.append(ROOT)
+
+import glob
+import torch
+import numpy as np
+import argparse
+
+import utils.lib_rnn as lib_rnn
+import utils.lib_ml as lib_ml
+import utils.lib_augment as lib_augment
+import utils.lib_datasets as lib_datasets
+import utils.lib_commons as lib_commons
+import utils.lib_io as lib_io
+
+
+
+
+
 # ------------------------------------------------------------------------
 
 
-
-def setup_classifier(load_weight_from):
-    model_args = lib_rnn.set_default_args()
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = lib_rnn.create_RNN_model(model_args, load_weight_from)
-    return model
-
-def setup_classes_labels(load_classes_from, model):
-    classes = lib_io.read_list(load_classes_from)
-    print(f"{len(classes)} classes: {classes}")
-    model.set_classes(classes)
-
-
 def main(args):
-    
-    model = setup_classifier(
-        load_weight_from=args.weight_path)
-    
-    setup_classes_labels(
-        load_classes_from=args.classes_path,
-        model=model)
-    
+
+    # -- Init model
+    model, classes = lib_rnn.setup_default_RNN_model(
+        args.weight_path, args.classes_path)
+
+    # -- If `data_folder` is a filename, return [data_folder].
+    #    If `data_folder` is a folder, return all .wav filenames in this folder.
     filenames = lib_datasets.get_wav_filenames(
         data_folder=args.data_folder, suffix=".wav")
-    
+
+    # -- Classification
     print("\nStart predicting audio label:\n")
-    
+
     for i, name in enumerate(filenames):
         audio = lib_datasets.AudioClass(filename=name)
         label = model.predict_audio_label(audio)
-        
+
         print("{:03d}th file: Label = {:<10}, Filename = {}".format(
             i, label, name))
-     
-if __name__=="__main__":
+
+
+if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    
+
     parser.add_argument('--weight_path', type=str, help='path to the pretrained weights',
                         default="weights/my.ckpt")
     parser.add_argument('--classes_path', type=str, help='path to classes.names',
                         default="config/classes.names")
-    parser.add_argument('--data_folder', type=str, help='path to an .wav file, or to a folder containing .wav files')
-    
+    parser.add_argument('--data_folder', type=str,
+                        help='path to an .wav file, or to a folder containing .wav files')
+
     args = parser.parse_args()
     main(args)
         

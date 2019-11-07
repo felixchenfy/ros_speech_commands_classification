@@ -297,8 +297,8 @@ def test_augmentation_effects():
     from utils.lib_io import read_audio, write_audio, play_audio
     import copy
 
-    filename = 'test_data/audio_3.wav'
-    output_name = 'test_data/tmp_audio.wav'
+    filename = ROOT + 'test_data/audio_3.wav'
+    output_name = ROOT + 'test_data/tmp_audio.wav'
     audio = AudioClass(filename=filename)
     print("Audio length = ", audio.get_len_s(), " seconds")
 

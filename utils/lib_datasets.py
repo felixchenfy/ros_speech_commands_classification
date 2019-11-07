@@ -321,7 +321,7 @@ class AudioClass(object):
 def synthesize_audio(text,
                      sample_rate=16000,
                      lang='en',
-                     tmp_filename=".tmp_audio_from_SynthesizedAudio.wav",
+                     tmp_filename=ROOT + ".tmp_audio_from_SynthesizedAudio.wav",
                      is_print=False):
     '''
     Synthesize the audio of the text
@@ -386,15 +386,19 @@ def shout_out_result(audio_filepath,
 
 
 def get_wav_filenames(data_folder, suffix=".wav"):
-    ''' Get all wav files under the folder;
+    ''' 
+    If `data_folder` is a filename, return [data_folder].
+    If `data_folder` is a folder, return all .wav filenames in this folder.
     '''
+    if not data_folder:
+        raise RuntimeError("The input data_folder is empty.")
     if suffix[0] != ".":
         suffix = "." + suffix
     if os.path.isdir(data_folder):
         filenames = glob.glob(data_folder + "/*" + suffix)
         if not filenames:
             raise RuntimeError("No .wav files in folder: " + data_folder)
-    elif suffix in data_folder:
+    elif suffix in data_folder: # The input is a filename
         filenames = [data_folder]
     else:
         raise ValueError('Wrong data_folder. Only .wav file is supported')

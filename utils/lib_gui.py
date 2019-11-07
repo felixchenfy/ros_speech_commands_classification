@@ -19,7 +19,6 @@ if True:  # Include project path
     import sys
     import os
     ROOT = os.path.dirname(os.path.abspath(__file__))+"/../"
-    CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
     sys.path.append(ROOT)
 
 
@@ -142,7 +141,7 @@ class GuiForAudioClassification(object):
 
         # -- Other inputs
         # Voice intensity inputed from the microphone
-        self._recording_state_filename = ".tmp_recording_state.txt"
+        self._recording_state_filename = ROOT + ".tmp_recording_state.txt"
         self._reset_recording_state()
 
         # -- Set three sub images for display
@@ -351,7 +350,7 @@ class GuiForAudioClassification(object):
         col2 = TextBoxDrawer(img, x0=150, y0=y0,
                              fontsize=fontsize)
         for prob in probabilities:
-            col2.add_text(":{:>6.1f}%".format(prob))
+            col2.add_text(":{:>6.1f}%".format(prob * 100))
 
         # Return
         self._img3 = img

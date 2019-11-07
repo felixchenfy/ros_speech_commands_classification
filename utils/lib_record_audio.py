@@ -3,6 +3,12 @@
 from __future__ import division
 from __future__ import print_function
 
+if True:  # Include project path
+    import sys
+    import os
+    ROOT = os.path.dirname(os.path.abspath(__file__))+"/../"
+    sys.path.append(ROOT)
+
 import time
 import pynput  # We need pynput.keyboard
 import multiprocessing
@@ -73,7 +79,7 @@ class AudioRecorder(object):
         self.init_settings()
         self._set_filename = lambda folder: tempfile.mktemp(
             prefix=folder + "audio_" + self.get_time(), suffix=".wav", dir="")
-        self._recording_state_filename = ".tmp_recording_state.txt"
+        self._recording_state_filename = ROOT + ".tmp_recording_state.txt"
 
     def init_settings(self):
         self.parser = argparse.ArgumentParser(description=__doc__)
@@ -130,10 +136,13 @@ class AudioRecorder(object):
         self.audio_time0 = time.time()
 
         # Start
-        # self._thread_alive = True # This seems not working
-        self.thread_record = multiprocessing.Process(target=self.record,
-                                                     args=())
-        self.thread_record.start()
+        self._is_thread_alive = multiprocessing.Value('i', 1)
+        # self._thread = multiprocessing.Process(
+        #     target=self._thread_for_recording, args=(self._is_thread_alive, ))
+        self._thread = threading.Thread(
+            target=self._thread_for_recording, args=(self._is_thread_alive, ))
+        self._thread.daemon = True
+        self._thread.start()
 
     def stop_record(self, sample_rate=16000):
         """
@@ -145,8 +154,9 @@ class AudioRecorder(object):
         """
 
         # Stop thread
-        self.thread_record.terminate()
-        # self._thread_alive = False # This seems not working
+        # self._thread.terminate()
+        self._is_thread_alive.Value = 0
+        time.sleep(0.1)
 
         if 0:  # Print dashed lines
             print("\n\n" + "/" * 80)
@@ -176,7 +186,7 @@ class AudioRecorder(object):
             else:
                 return False, 0.0
 
-    def record(self):
+    def _thread_for_recording(self, is_thread_alive):
         '''
         Input: Audio from microphone.
         Output:
@@ -218,14 +228,16 @@ class AudioRecorder(object):
                 print("Start recording:")
                 print("#" * 80)
                 t0 = time.time()
-                while True:
+                while is_thread_alive.value != 0:
                     values = q.get()
                     ret, average = abs_average_calculator.add_numbers(values)
                     if ret:
                         dt = time.time() - t0
+                        print(is_thread_alive.value)
                         with open(self._recording_state_filename, 'w') as f:
                             f.write("{:.2f}, {:.3f}".format(dt, average))
                     file.write(values)
+                warnings.warn("Recording thread is terminated")
 
     def check_audio(self, time_duration, MIN_AUDIO_LENGTH=0.1):
         # Delete file if it's too short
