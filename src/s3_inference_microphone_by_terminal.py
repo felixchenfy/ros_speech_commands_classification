@@ -45,7 +45,7 @@ def setup_classifier(weight_file_path):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model_args = lib_rnn.set_default_args()
     model = lib_rnn.create_RNN_model(model_args, weight_file_path)
-    if 0: # random test
+    if 0: # Test with random data
         label_index = model.predict(np.random.random((66, 12)))
         print("Label index of a random feature: ", label_index)
         exit("Complete test.")

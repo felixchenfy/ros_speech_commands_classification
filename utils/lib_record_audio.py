@@ -23,7 +23,7 @@ if 1:  # for AudioRecorder
     import datetime
 
 
-def reset_audio_sample_rate(filename, dst_sample_rate):
+def reset_audio_file_sample_rate(filename, dst_sample_rate):
     ''' Reset the sample rate of an audio file.
         The result will overwrite the original one.
     '''
@@ -73,6 +73,7 @@ class AudioRecorder(object):
         self.init_settings()
         self._set_filename = lambda folder: tempfile.mktemp(
             prefix=folder + "audio_" + self.get_time(), suffix=".wav", dir="")
+        self._recording_state_filename = ".tmp_recording_state.txt"
 
     def init_settings(self):
         self.parser = argparse.ArgumentParser(description=__doc__)
@@ -155,12 +156,42 @@ class AudioRecorder(object):
         # Check result
         time_duration = time.time() - self.audio_time0
         self.check_audio(time_duration)
-        reset_audio_sample_rate(self.filename, sample_rate)
+        reset_audio_file_sample_rate(self.filename, sample_rate)
+
+    class _AbsAverageCalculator(object):
+        ''' Compute the average value of the input data stream
+            when number of input is `stream_length`.
+        '''
+
+        def __init__(self, stream_length):
+            self._stream_length = stream_length
+            self._buffer = []
+
+        def add_numbers(self, nums):
+            self._buffer.extend(nums)
+            if len(self._buffer) >= self._stream_length:
+                average = np.average(np.abs(self._buffer))
+                self._buffer = []
+                return True, average
+            else:
+                return False, 0.0
 
     def record(self):
+        '''
+        Input: Audio from microphone.
+        Output:
+            Audio is written to `self.filename`.
+            The current audio intensity is written to
+                `self._recording_state_filename`
+        '''
 
-        q = queue.Queue()
+        q = queue.Queue()  # to store the audio data collected from another thread
 
+        # Number of samples to compute an average intensity
+        num_average = int(self.args.samplerate / 30)
+        abs_average_calculator = self._AbsAverageCalculator(num_average)
+
+        # Callback function for collecting audio data
         def callback(indata, frames, time, status):
             """This is called (from a separate thread) for each audio block."""
             if status:
@@ -169,6 +200,7 @@ class AudioRecorder(object):
             # print(new_val)
             q.put(new_val)
 
+        # Open device and start collecting
         with sf.SoundFile(
                 self.filename,
                 mode="x",
@@ -185,9 +217,15 @@ class AudioRecorder(object):
                 print("#" * 80)
                 print("Start recording:")
                 print("#" * 80)
-                # while True and self._thread_alive:
+                t0 = time.time()
                 while True:
-                    file.write(q.get())
+                    values = q.get()
+                    ret, average = abs_average_calculator.add_numbers(values)
+                    if ret:
+                        dt = time.time() - t0
+                        with open(self._recording_state_filename, 'w') as f:
+                            f.write("{:.2f}, {:.3f}".format(dt, average))
+                    file.write(values)
 
     def check_audio(self, time_duration, MIN_AUDIO_LENGTH=0.1):
         # Delete file if it's too short

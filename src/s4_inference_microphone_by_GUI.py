@@ -46,7 +46,7 @@ def setup_classifier(weight_file_path):
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model_args = lib_rnn.set_default_args()
     model = lib_rnn.create_RNN_model(model_args, weight_file_path)
-    if 0: # random test
+    if 0: # Test with random data
         label_index = model.predict(np.random.random((66, 12)))
         print("Label index of a random feature: ", label_index)
         exit("Complete test.")
@@ -60,13 +60,13 @@ def setup_classes_labels(classes_txt, model):
     
 def inference_from_microphone():
     
-    # # Setup LSTM model
-    # model = setup_classifier(
-    #     weight_file_path=PATH_TO_WEIGHTS)
+    # Setup LSTM model
+    model = setup_classifier(
+        weight_file_path=PATH_TO_WEIGHTS)
     
-    # setup_classes_labels(
-    #     classes_txt=PATH_TO_CLASSES,
-    #     model=model)
+    setup_classes_labels(
+        classes_txt=PATH_TO_CLASSES,
+        model=model)
     
     # GUI
     classes = lib_io.read_list(PATH_TO_CLASSES)
@@ -86,28 +86,53 @@ def inference_from_microphone():
             cnt_voice += 1
             print("\nRecord {}th voice".format(cnt_voice))
             
-            # Record audio
+            # -- Record audio
+            gui.enable_img1_self_updating()
             recorder.start_record(folder=SAVE_AUDIO_TO)  # Start record
             while not gui.is_key_released():  # Wait for key released
                 time.sleep(0.001)
             recorder.stop_record()  # Stop record
 
-            # # Do inference
-            # audio = lib_datasets.AudioClass(filename=recorder.filename)
-            # predicted_label = model.predict_audio_label(audio)
-            # print("\nAll word labels: {}".format(model.classes))
-            # print("\nPredicted label: {}\n".format(predicted_label))
+            # -- Do inference
+            audio = lib_datasets.AudioClass(filename=recorder.filename)
+            probs = model.predict_audio_label_probabilities(audio)
+            predicted_idx = np.argmax(probs)
+            predicted_label = classes[predicted_idx]
+            max_prob = probs[predicted_idx]
+            print("\nAll word labels: {}".format(classes))
+            print("\nPredicted label: {}, probability: {}\n".format(
+                predicted_label, max_prob))
+            PROB_THRESHOLD = 0.8
+            final_label  = predicted_label if max_prob > PROB_THRESHOLD else "None"
+            
+            # -- Update the image
 
-            # # Shout out the results. e.g.: one is two
-            # lib_datasets.shout_out_result(recorder.filename, predicted_label,
-            #         middle_word="is",
-            #         cache_folder="data/examples/")
+            # Update image1: first stop self updating, 
+            # then set recording_length and voice_intensity to zero
+            gui.reset_img1() 
+
+            # Update image 2: the prediction results
+            gui.set_img2(
+                final_label=final_label,
+                predicted_label=predicted_label, 
+                probability=max_prob, 
+                length=audio.get_len_s(),
+                valid_length=audio.get_len_s(), # TODO: remove the silent voice,
+            )
+            
+            # Update image 3: the probability of each class
+            gui.set_img3(probabilities=probs)
+            
+            # -- Shout out the results. e.g.: two is one
+            lib_datasets.shout_out_result(recorder.filename, final_label,
+                    middle_word="is",
+                    cache_folder="data/examples/")
                 
         time.sleep(0.1)
 
     print("\n=====================================================")
     print("`def inference_from_microphone` stops")
-    print("\n=====================================================")
+    print("=====================================================\n")
 
 if __name__=="__main__":
     inference_from_microphone()

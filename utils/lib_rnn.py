@@ -169,11 +169,32 @@ class RNN(nn.Module):
         out = self.fc(out[:, -1, :])
         return out
 
+    def predict_probabilities(self, x):
+        ''' Given the feature x of an audio sample,
+            compute the probability of classified as each class.
+        Arguments:
+            x {np.array}: features of a sample audio.
+                Shape = L*N, where
+                L is length of the audio sequence,
+                N is feature dimension.
+        Return:
+            probs {np.array}: Probabilities.
+        '''
+        x = torch.tensor(x[np.newaxis, :], dtype=torch.float32)
+        x = x.to(self.device)
+        outputs = self.forward(x).data.cpu().numpy().flatten()
+        outputs = np.exp(outputs - max(outputs)) # softmax
+        probs = outputs / sum(outputs)
+        return probs    
+
     def predict(self, x):
-        '''Predict one label from one sample's features'''
-        # x: feature from a sample, LxN
-        #   L is length of sequency
-        #   N is feature dimension
+        ''' Predict the label of the input feature of an audio.
+        Arguments:
+            x {np.array}: features of a sample audio.
+                Shape = L*N, where
+                L is length of the audio sequence,
+                N is feature dimension.
+        '''
         x = torch.tensor(x[np.newaxis, :], dtype=torch.float32)
         x = x.to(self.device)
         outputs = self.forward(x)
@@ -186,7 +207,8 @@ class RNN(nn.Module):
 
     def predict_audio_label(self, audio):
         idx = self.predict_audio_label_index(audio)
-        assert self.classes, "Classes names are not set. Don't know what audio label is"
+        if not self.classes:
+            raise RuntimeError("Classes names are not set. Don't know what audio label is")
         label = self.classes[idx]
         return label
 
@@ -195,7 +217,13 @@ class RNN(nn.Module):
         x = audio.mfcc.T  # (time_len, feature_dimension)
         idx = self.predict(x)
         return idx
-
+    
+    def predict_audio_label_probabilities(self, audio):
+        audio.compute_mfcc()
+        x = audio.mfcc.T  # (time_len, feature_dimension)
+        probs = self.predict_probabilities(x)
+        return probs
+    
 
 def evaluate_model(model, eval_loader, num_to_eval=-1):
     ''' Eval model on a dataset '''

@@ -18,7 +18,7 @@ import json
 if True:  # Include project path
     import sys
     import os
-    ROOT = os.path.dirname(os.path.abspath(__file__))+"/"
+    ROOT = os.path.dirname(os.path.abspath(__file__))+"/../"
     CURR_PATH = os.path.dirname(os.path.abspath(__file__))+"/"
     sys.path.append(ROOT)
 
@@ -112,7 +112,7 @@ class GuiForAudioClassification(object):
     '''
 
     def __init__(self, classes, hotkey='R', key_effective_duration=0.5,
-                 h1=150, h2=340, w1=550, w2=265):
+                 h1=170, h2=320, w1=550, w2=265):
         '''
         Argument:
             hotkey {char}: self.is_key_pressed() detects the state of `hotkey`.
@@ -123,7 +123,7 @@ class GuiForAudioClassification(object):
                  cv2.waitKey might return 0 even when the key is kept pressed down.)
                 A suggested value tested on my Ubuntu 18.04 is 0.5.
         '''
-        # Variables
+        # -- Variables
         self._CLASSES = classes
         self._HOTKEY = hotkey
         self._KEY_EFFECTIVE_DURATION = key_effective_duration
@@ -132,19 +132,25 @@ class GuiForAudioClassification(object):
         self._is_key_pressed = False
         self._KEY_QUIT = 'Q'
         self._is_key_quit_pressed = False
+        self._is_img1_self_updating_enabled = False
 
-        # image size
+        # -- Image size
         self._H1 = h1
         self._H2 = h2
         self._W1 = w1
         self._W2 = w2
 
-        # Set three sub images for display
+        # -- Other inputs
+        # Voice intensity inputed from the microphone
+        self._recording_state_filename = ".tmp_recording_state.txt"
+        self._reset_recording_state()
+
+        # -- Set three sub images for display
         self.set_img1()
         self.set_img2()
         self.set_img3()
 
-        # Start the thread for displaying image
+        # -- Start the thread for displaying image
         IS_DEBUG = False
         if IS_DEBUG:
             self._thread_display_image()  # No extra thread. Easier to debug.
@@ -168,11 +174,18 @@ class GuiForAudioClassification(object):
             This thread is started when the class is initialized.
         '''
         while True:
+
+            # Update image
+            if self._is_img1_self_updating_enabled:
+                self.set_img1()
+
+            # Display
             img_disp = np.hstack((np.vstack(
                 (self._img1, self._img2)), self._img3))
             cv2.imshow("Audio classification", img_disp)
             q = cv2.waitKey(30)
 
+            # Update key state
             if time.time() - self._t_prev_pressed < self._KEY_EFFECTIVE_DURATION:
                 # Key is considered as pressed. Nothing needs to change.
                 pass
@@ -189,10 +202,22 @@ class GuiForAudioClassification(object):
         add_black_border(img, board_width)
         return img
 
+    def enable_img1_self_updating(self):
+        self._is_img1_self_updating_enabled = True
+
+    def reset_img1(self):
+        self._is_kept_updating_img1 = False
+        self._reset_recording_state()
+        self.set_img1()
+
+    def _reset_recording_state(self):
+        with open(self._recording_state_filename, 'w') as f:
+            f.write("0.0, 0.0")  # recording_length=0.0, voice_intensity=0.0
+
     def set_img1(
             self,
-            recording_length=0.0,
-            voice_intensity=0.0,
+            # recording_length=0.0,
+            # voice_intensity=0.0, # This is read from file
     ):
         '''
         Image for displaying current recording state.
@@ -209,24 +234,37 @@ class GuiForAudioClassification(object):
         img = self._init_blank_img(h, w)
         max_recording_length = 2.0  # unit: seconds
         max_voice_intensity = 1.0
+        voice_intensity_divident_ratio = 0.3
+
+        # Read voice intensity
+        try:
+            with open(self._recording_state_filename, 'r') as f:
+                values = f.readline().split(",")
+                recording_length, voice_intensity = [float(v) for v in values]
+        except:
+            recording_length = 0.0
+            voice_intensity = 0.0
 
         # Bars to show progress
         #   Recording state: [============================]
         #   Voice intensity: [============================]
-        def create_bar(cur_val, max_val, n_symbols=20):
+        def create_bar(cur_val, max_val, n_symbols=14):
             ratio = min(1.0, abs(cur_val) / max_val)
             n1 = int(n_symbols * ratio)
             n2 = n_symbols - n1
             return "=" * n1 + " " * n2
-
         bar1 = create_bar(recording_length, max_recording_length)
+        voice_intensity = np.log(voice_intensity + 1) / \
+            voice_intensity_divident_ratio  # Take logirthm
         bar2 = create_bar(voice_intensity, max_voice_intensity)
 
         # Draw texts
-        s1 = "Press 'R' to record:"
-        s2 = "Recording state: [" + bar1 + "]"
-        s3 = "Voice intensity:  [" + bar2 + "]"
+        s1 = "Press '{}' to record:".format(self._HOTKEY)
+        s2 = "Recording state: [" + bar1
+        s3 = "Voice intensity:  [" + bar2
+        # s4 = "Voice intensity:  " + str(voice_intensity)
         box = TextBoxDrawer(img, x0=20, y0=20, texts=[s1, s2, s3])
+        box = TextBoxDrawer(img, x0=530, y0=20, texts=["", "]", "]"])
 
         # Return
         self._img1 = img
@@ -292,7 +330,9 @@ class GuiForAudioClassification(object):
 
         # Check input
         N = len(self._CLASSES)  # number of classes
-        assert (not probabilities or len(probabilities) == N)
+        if isinstance(probabilities, np.ndarray):
+            probabilities = probabilities.tolist()
+        assert(len(probabilities) in [0, N])
         if not probabilities:
             probabilities = [0.0] * N
 
@@ -324,14 +364,39 @@ def read_list(filename):
     return data
 
 
-def test_GUI():
+def test_GUI_1():
     PATH_TO_CLASSES = ROOT + "config/classes.names"
     classes = read_list(PATH_TO_CLASSES)
     gui = GuiForAudioClassification(classes)
-    while True:
-        print(gui.is_key_pressed(), gui._result_key)
+    while not gui.is_key_quit_pressed():
+        if gui.is_key_pressed():
+            print("\n=================================")
+            print("Start fake recording ...")
+            gui.enable_img1_self_updating()
+            while not gui.is_key_released():  # Wait for key released
+                time.sleep(0.001)
+            print("Stop fake recording ...")
+            gui.reset_img1()
+            gui.set_img2()
+            gui.set_img3()
+            print("The image has been updated.")
+            print("=================================\n")
+        time.sleep(0.1)
+        print("is_key_pressed: {}, result key: {}".format(
+            gui.is_key_pressed(), gui._result_key))
+
+
+def test_GUI_2():
+    PATH_TO_CLASSES = ROOT + "config/classes.names"
+    classes = read_list(PATH_TO_CLASSES)
+    gui = GuiForAudioClassification(classes)
+
+    while not gui.is_key_quit_pressed():
+        gui.set_img1()
+        print("is_key_pressed: {}, result key: {}".format(
+            gui.is_key_pressed(), gui._result_key))
         time.sleep(0.1)
 
 
 if __name__ == '__main__':
-    test_GUI()
+    test_GUI_1()
