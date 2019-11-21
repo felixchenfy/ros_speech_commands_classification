@@ -9,7 +9,34 @@
 `one, two, three, four, five, front, back, left, right, stop, none`
 
 **GUI**:
-<!-- ![](TODO: PUT AN IMAGE HERE) -->
+
+![](doc/input_and_classify_audio_from_gui.gif)
+
+
+**Table of Contents**:
+
+- [1. How to run](#1-how-to-run)
+  * [1.1. Install Dependencies](#11-install-dependencies)
+  * [1.2. Download this project](#12-download-this-project)
+  * [1.3. Classify Audio from Microphone (ROS)](#13-classify-audio-from-microphone--ros-)
+  * [1.4. Classify Audio from Microphone (not ROS)](#14-classify-audio-from-microphone--not-ros-)
+  * [1.5. Classify Audio Files](#15-classify-audio-files)
+- [2. Train the Model](#2-train-the-model)
+  * [2.1. Pretrain on a Big Dataset](#21-pretrain-on-a-big-dataset)
+    + [2.1.1. Download dataset](#211-download-dataset)
+    + [2.2.2. Train](#222-train)
+    + [2.2.3. Result](#223-result)
+  * [2.2 Finetune on My Dataset](#22-finetune-on-my-dataset)
+    + [2.2.1. Data and Pretrained Model](#221-data-and-pretrained-model)
+    + [2.2.2. Train](#222-train-1)
+    + [2.2.3. Result](#223-result-1)
+- [3. Algorithm](#3-algorithm)
+  * [3.1. Overview](#31-overview)
+  * [3.2. Feature](#32-feature)
+  * [3.3. Data Augmentation](#33-data-augmentation)
+  * [3.4. Result](#34-result)
+- [4. Reference](#4-reference)
+
 
 # 1. How to run
 
@@ -44,7 +71,7 @@ $ export ROOT="$PWD"
 ## 1.3. Classify Audio from Microphone (ROS)
 
 ```
-$ rosrun ros_speech_command_classification start_GUI_and_audio_classification.py
+$ rosrun ros_speech_commands_classification start_GUI_and_audio_classification.py
 $ rostopic echo /ros_speech_commands_classification/predicted_label
 $ rostopic echo /ros_speech_commands_classification/predicted_probability
 ```
@@ -59,8 +86,7 @@ After running the ROS Node, a GUI will pop out. Then, you need to:
 Please see [start_GUI_and_audio_classification.py](start_GUI_and_audio_classification.py) for more details.
 
 A snapshot of the GUI is shown below.
-
-![](TODO: ADD IMAGE)
+![](input_and_classify_audio_from_gui.jpg)
 
 ## 1.4. Classify Audio from Microphone (not ROS)
 
@@ -258,7 +284,7 @@ Then, you need to move the checkpoint with highest accuracy, e.g. `checkpoints/0
 
 # 3. Algorithm  
 
-# 3.1. Overview
+## 3.1. Overview
 **Feature:** MFCCs (Mel-frequency cepstral coefficients) are computed from the audio. You can think of this feature as the result of fouriour transformation. See [utils/lib_proc_audio.py](utils/lib_proc_audio.py)
 
 **Classifier:** LSTM (Long Short-Term Memory). This is a type of Recurrent Neural Network. See [utils/lib_rnn.py](utils/lib_rnn.py).
@@ -267,7 +293,7 @@ Then, you need to move the checkpoint with highest accuracy, e.g. `checkpoints/0
 
 **Finetune**: The model was then finetuned on my own dataset.
     
-# 3.2. Feature
+## 3.2. Feature
 The [MFCCs](https://en.wikipedia.org/wiki/Mel-frequency_cepstrum) feature is computed and fed into the classifer. An intuitive understanding of MFCCs is: Use a sliding window on the raw data, and compute the fourior transform of each window to obtain the "loudness" on each frequency band.
 
 The function for computing MFCCs is in [utils/lib_proc_audio.py](utils/lib_proc_audio.py):
@@ -281,7 +307,7 @@ Test and plot:
 
 ![](doc/mfcc_feature.jpg)
 
-# 3.3. Data Augmentation
+## 3.3. Data Augmentation
 
 Raw data goes through a serials of augmentation before training, including:
 - Shift
@@ -325,7 +351,7 @@ python test/test_lib_augment.py
 Result:
 ![](doc/two_data_augmentation_results.jpg)
 
-# 3.4. Result  
+## 3.4. Result  
 
 The test accuracy is 92.4% on Speech Commands Dataset, with a random 0.9/0.1 train/test split.
 
@@ -336,7 +362,7 @@ This is kind of overfitting, because almost all the words(audio files) were spok
 If you want to use this repo for your own course project, you may need to record audios of your own voice, and then train the model, as described in Section `2.2. Finetune on My Dataset`.
 
 
-# Reference
+# 4. Reference
 
 * Record audio  
 https://python-sounddevice.readthedocs.io/en/0.3.12/examples.html#recording-with-arbitrary-duration
