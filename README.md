@@ -20,7 +20,7 @@ Ubuntu 18.04, ROS melodic.
 
 - [1. How to run](#1-how-to-run)
   * [1.1. Install Dependencies](#11-install-dependencies)
-  * [1.2. Download this project](#12-download-this-project)
+  * [1.2. Download This Project](#12-download-this-project)
   * [1.3. Classify Audio from Microphone in ROS](#13-classify-audio-from-microphone-in-ros)
   * [1.4. Classify Audio from Microphone not in ROS](#14-classify-audio-from-microphone-not-in-ros)
   * [1.5. Classify Audio Files](#15-classify-audio-files)
@@ -62,7 +62,7 @@ Then, install `pytorch`: Please go to https://pytorch.org/ and install the one t
 $ sudo pip install torch torchvision # or pip2
 ```
 
-## 1.2. Download this project
+## 1.2. Download This Project
 Download to your ROS workspace:
 ```
 $ cd ~/catkin_ws/src
@@ -89,7 +89,7 @@ After running the ROS Node, a GUI will pop out. Then, you need to:
 Please see [start_GUI_and_audio_classification.py](start_GUI_and_audio_classification.py) for more details.
 
 A snapshot of the GUI is shown below.
-![](input_and_classify_audio_from_gui.jpg)
+![](doc/input_and_classify_audio_from_gui.jpg)
 
 ## 1.4. Classify Audio from Microphone not in ROS
 
@@ -157,7 +157,7 @@ args.classes_txt = "config/classes_kaggle.names"
 
 **Data label format**: All audios of the label `cat` is put under the folder `data/kaggle/cat/`, and so does `dog`, `bird`, etc..
 
-Start training:
+**Start training**:
 ```
 $ python src/s1_pretrain_on_kaggle.py 
 ```
@@ -235,7 +235,7 @@ args.data_folder = "data/data_train/"
 args.load_weight_from = "weights/kaggle.ckpt"
 ```
 
-Start training:
+**Start training**:
 ```
 python src/src/s2_train_on_mine.py
 ```
@@ -275,16 +275,6 @@ Then, you need to move the checkpoint with highest accuracy, e.g. `checkpoints/0
     ![](doc/accuracy_trained_on_my_own.jpg)
     Move the checkpoint with highest accuracy, i.e. `checkpoints/009.ckpt`, to `weights/my.ckpt`.
 
-
-
-
-
-
-
-
-
-
-
 # 3. Algorithm  
 
 ## 3.1. Overview
@@ -319,7 +309,7 @@ Raw data goes through a serials of augmentation before training, including:
 - Change play speed
 - Superpose noise
 
-This step is essential. Raw audios in Speech Commands Dataset are all about one second long, and have little background noise. It can easily cause overfitting. Thus, I augmented data by adding noise, change audio length, loudness, etc.
+This step is essential. Raw audios in Speech Commands Dataset are all about one second long, and have little background noise. It can easily cause overfitting. Thus, I augmented data by adding noise, changing audio length, loudness, etc.
 
 Example code of audio augmentation:
 ``` python
@@ -358,9 +348,9 @@ Result:
 
 The test accuracy is 92.4% on Speech Commands Dataset, with a random 0.9/0.1 train/test split.
 
-The model was then finetuned and evaluated on my own dataset of 1378 samples, with all the parameters fixed except the last FC layer.  
+The model was then finetuned and evaluated on my own dataset of 1378 samples, with all the parameters fixed except the last fully connected layer.  
 The test accuracy is 100.0%, with a random 0.7/0.3 train/test split.   
-This is kind of overfitting, because almost all the words(audio files) were spoken by me, which are similar to each other to some extent.
+The result is kind of overfitting, because almost all the data (audio files) are from me and are to some extent similar to each other.
 
 If you want to use this repo for your own course project, you may need to record audios of your own voice, and then train the model, as described in Section `2.2. Finetune on My Dataset`.
 
