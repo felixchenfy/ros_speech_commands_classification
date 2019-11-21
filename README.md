@@ -1,5 +1,8 @@
 # ROS Package for Speech Commands Classification
 
+**Environment**:
+Ubuntu 18.04, ROS melodic.
+
 **Workflow**:  
 (1) Press `R` to record audio.  
 (2) Speak a word to your laptop's microphone.   
@@ -18,8 +21,8 @@
 - [1. How to run](#1-how-to-run)
   * [1.1. Install Dependencies](#11-install-dependencies)
   * [1.2. Download this project](#12-download-this-project)
-  * [1.3. Classify Audio from Microphone (ROS)](#13-classify-audio-from-microphone--ros-)
-  * [1.4. Classify Audio from Microphone (not ROS)](#14-classify-audio-from-microphone--not-ros-)
+  * [1.3. Classify Audio from Microphone in ROS](#13-classify-audio-from-microphone-in-ros)
+  * [1.4. Classify Audio from Microphone not in ROS](#14-classify-audio-from-microphone-not-in-ros)
   * [1.5. Classify Audio Files](#15-classify-audio-files)
 - [2. Train the Model](#2-train-the-model)
   * [2.1. Pretrain on a Big Dataset](#21-pretrain-on-a-big-dataset)
@@ -68,7 +71,7 @@ $ cd ros_speech_commands_classification
 $ export ROOT="$PWD"
 ```
 
-## 1.3. Classify Audio from Microphone (ROS)
+## 1.3. Classify Audio from Microphone in ROS
 
 ```
 $ rosrun ros_speech_commands_classification start_GUI_and_audio_classification.py
@@ -88,7 +91,7 @@ Please see [start_GUI_and_audio_classification.py](start_GUI_and_audio_classific
 A snapshot of the GUI is shown below.
 ![](input_and_classify_audio_from_gui.jpg)
 
-## 1.4. Classify Audio from Microphone (not ROS)
+## 1.4. Classify Audio from Microphone not in ROS
 
 * GUI version:
     ```
