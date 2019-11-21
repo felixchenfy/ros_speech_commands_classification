@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(speech_commands_classification)
+project(ros_speech_commands_classification)
 
 ## Find catkin and any catkin packages
 find_package(catkin REQUIRED COMPONENTS roscpp rospy std_msgs genmsg)
@@ -19,8 +19,8 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 
 # add_executable(talker src/talker.cpp)
 # target_link_libraries(talker ${catkin_LIBRARIES})
-# add_dependencies(talker speech_commands_classification_generate_messages_cpp)
+# add_dependencies(talker ros_speech_commands_classification_generate_messages_cpp)
 
 # add_executable(listener src/listener.cpp)
 # target_link_libraries(listener ${catkin_LIBRARIES})
-# add_dependencies(listener speech_commands_classification_generate_messages_cpp)
+# add_dependencies(listener ros_speech_commands_classification_generate_messages_cpp)

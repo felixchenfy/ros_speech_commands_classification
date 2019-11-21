@@ -19,7 +19,12 @@ from src.s4_inference_microphone_by_GUI import AudioClassifierWithGUI
 # -- Settings
 SRC_WEIGHT_PATH = ROOT + "weights/my.ckpt"
 SRC_CLASSES_PATH = ROOT + "config/classes.names"
+
 DST_AUDIO_FOLDER = ROOT + "data/data_tmp/"
+
+ROS_TOPIC_PREDICTED_LABEL = "ros_speech_commands_classification/predicted_label"
+ROS_TOPIC_PREDICTED_PROBABILITY = "ros_speech_commands_classification/predicted_probability"
+
 
 # -- Main
 
@@ -29,10 +34,10 @@ class Publishers(object):
 
     def __init__(self):
         self._pub_label = rospy.Publisher(
-            "speech_commands_classification/predicted_label",
+            ROS_TOPIC_PREDICTED_LABEL,
             String, queue_size=10)
         self._pub_prob = rospy.Publisher(
-            "speech_commands_classification/predicted_probability",
+            ROS_TOPIC_PREDICTED_PROBABILITY,
             Float32, queue_size=10)
 
     def publish(self, label, prob):

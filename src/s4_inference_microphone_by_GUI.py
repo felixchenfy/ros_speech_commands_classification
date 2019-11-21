@@ -59,7 +59,7 @@ class AudioClassifierWithGUI(object):
         self._recorder = AudioRecorder()
 
     def record_audio_and_classifiy(self,
-            shout_out_result=False):
+            is_shout_out_result=False):
         model, classes = self._model, self._CLASSES
         gui, recorder = self._gui, self._recorder 
 
@@ -101,7 +101,7 @@ class AudioClassifierWithGUI(object):
         gui.set_img3(probabilities=probs)
         
         # -- Shout out the results. e.g.: two is one
-        if shout_out_result:
+        if is_shout_out_result:
             lib_datasets.shout_out_result(
                 recorder.filename, # Raw audio to shout out
                 final_label,
@@ -131,7 +131,7 @@ def inference_from_microphone():
     while not audio_clf.is_key_quit_pressed():
         timer_printer.print("Usage: keep pressing down 'R' to record audio")
         if audio_clf.is_key_pressed():
-            audio_clf.record_audio_and_classifiy(shout_out_result=True)
+            audio_clf.record_audio_and_classifiy(shout_out_result=False)
         time.sleep(0.1)
 
 if __name__=="__main__":
